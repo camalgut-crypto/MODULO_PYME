@@ -1,0 +1,20 @@
+MÓDULO PYME · PROCESO DE CARGA
+==============================
+
+Qué hace: deja en esta PC un proceso en segundo plano que lee la cartera del equipo PYME en
+SRV-BIJAGUA (red interna) y la sube a la app. Atiende el botón "Actualizar" de la app y la carga
+diaria de las 7:30. Si hay varias PCs con el proceso, carga la primera que esté encendida.
+
+No necesita Python, SQL Server ni Management Studio: usa el driver de SQL Server que trae Windows.
+Necesita estar en la red de Instacredit (oficina o VPN), igual que Power Query.
+
+INSTALAR (una vez, con la sesión de Windows de la persona que usa la PC)
+1. Copiar esta carpeta a la PC (por ejemplo al Escritorio).
+2. Doble clic en Instalar.bat.
+3. En las ventanas: usuario y contraseña SQL, y la contraseña del usuario "sistema" de Supabase.
+   Se guardan en el Administrador de credenciales de Windows de ese usuario, no en archivos.
+4. Debe salir un mensaje con dos ✔ (SQL y Supabase). Luego la carpeta copiada se puede borrar.
+
+DESINSTALAR: doble clic en Desinstalar.bat.
+
+Registro: %LOCALAPPDATA%\ModuloPYME_Carga\worker\logs\actualizar.log

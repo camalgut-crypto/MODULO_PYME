@@ -4,6 +4,7 @@ Uso:
   actualizar.py --escuchar              queda encendido en una PC de la red: atiende el botón Actualizar de la app y la
                                         carga diaria de las 7:30 (pueden ser varias PCs; Supabase reparte el trabajo)
   actualizar.py --una-vez               carga ahora mismo (manual)
+  actualizar.py --configurar            guarda y prueba las credenciales (ventanas; para instalar en otra PC)
   actualizar.py --prueba                ejecuta las consultas y muestra un resumen, sin subir nada
   actualizar.py --local [CEDULA ...]    genera public/local/datos.json para revisar la app sin Supabase
 
@@ -199,6 +200,57 @@ def escuchar(cfg: dict):
         reloj.sleep(20)
 
 
+def configurar(cfg: dict):
+    """Ventanas para guardar las credenciales en el Administrador de credenciales de Windows y probarlas.
+    Se usa al instalar el proceso en otra PC (no hace falta consola ni SQL Server instalado)."""
+    import tkinter as tk
+    from tkinter import messagebox, simpledialog
+
+    import keyring
+
+    from pyme.conexion import CLAVE_USUARIO, conectar
+    from pyme.nube import Supabase
+
+    raiz = tk.Tk()
+    raiz.withdraw()
+    titulo = "Módulo PYME · Proceso de carga"
+    srv, sup = cfg["servidor"], cfg["supabase"]
+    actual = keyring.get_password(srv["servicio_credenciales"], CLAVE_USUARIO) or ""
+    usuario = simpledialog.askstring(titulo, f"Usuario SQL para {srv['server']}:", initialvalue=actual, parent=raiz)
+    if usuario is None:
+        return
+    clave = simpledialog.askstring(titulo, f"Contraseña SQL del usuario {usuario}\n(vacío = dejar la que ya está guardada):",
+                                   show="•", parent=raiz)
+    if clave is None:
+        return
+    usuario = usuario.strip()
+    if clave:
+        keyring.set_password(srv["servicio_credenciales"], CLAVE_USUARIO, usuario)
+        keyring.set_password(srv["servicio_credenciales"], usuario, clave)
+    clave_sb = simpledialog.askstring(titulo, f"Contraseña del usuario '{sup['usuario']}' de Supabase (Tiempos DAC)\n"
+                                              "(vacío = dejar la que ya está guardada):", show="•", parent=raiz)
+    if clave_sb is None:
+        return
+    if clave_sb:
+        keyring.set_password(sup["servicio_credenciales"], sup["usuario"], clave_sb)
+    resultado = []
+    try:
+        with conectar(srv) as cn:
+            driver = cn.getinfo(6)  # SQL_DRIVER_NAME
+            cn.cursor().execute("SELECT 1").fetchall()
+        resultado.append(f"✔ SQL ({srv['server']}): conexión correcta (driver {driver})")
+    except Exception as e:
+        resultado.append(f"✘ SQL: {e}")
+    try:
+        Supabase(sup)
+        resultado.append("✔ Supabase: ingreso correcto")
+    except Exception as e:
+        resultado.append(f"✘ Supabase: {e}")
+    bien = all(r.startswith("✔") for r in resultado)
+    (messagebox.showinfo if bien else messagebox.showerror)(titulo, "\n\n".join(resultado), parent=raiz)
+    sys.exit(0 if bien else 1)
+
+
 def prueba(cfg: dict, cedulas: list[str]):
     if not cedulas:
         from pyme.nube import Supabase
@@ -235,14 +287,19 @@ def main():
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--una-vez", action="store_true")
     g.add_argument("--escuchar", action="store_true")
+    g.add_argument("--configurar", action="store_true")
     g.add_argument("--prueba", nargs="*", metavar="CEDULA")
     g.add_argument("--local", nargs="+", metavar="CEDULA")
     a = ap.parse_args()
     LOG.parent.mkdir(exist_ok=True)
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s",
-                        handlers=[logging.FileHandler(LOG, encoding="utf-8"), logging.StreamHandler()])
+    manejadores = [logging.FileHandler(LOG, encoding="utf-8")]
+    if sys.stderr:  # el .exe sin consola no tiene stderr
+        manejadores.append(logging.StreamHandler())
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", handlers=manejadores)
     cfg = leer_config()
-    if a.local:
+    if a.configurar:
+        configurar(cfg)
+    elif a.local:
         local(cfg, a.local)
     elif a.prueba is not None:
         prueba(cfg, a.prueba)

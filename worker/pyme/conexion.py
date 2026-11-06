@@ -6,8 +6,12 @@ from pathlib import Path
 import keyring
 import pandas as pd
 
-RAIZ = Path(__file__).resolve().parent.parent.parent
+import sys
+
+# Empaquetado como .exe (PyInstaller): la carpeta del .exe hace de raíz (ahí van worker/config.toml y worker/sql)
+RAIZ = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent.parent.parent
 CLAVE_USUARIO = "__usuario__"
+LEGACY = "SQL Server"  # viene con Windows: sirve en PCs sin SQL Server ni drivers instalados
 
 
 def leer_config(ruta: Path = RAIZ / "worker" / "config.toml") -> dict:
@@ -20,9 +24,11 @@ def _driver(configurado: str, instalados: list[str]) -> str:
         return configurado
     odbc = sorted((d for d in instalados if re.fullmatch(r"ODBC Driver \d+ for SQL Server", d)),
                   key=lambda d: int(re.search(r"\d+", d).group()))
-    if not odbc:
-        raise ConnectionError(f"No está instalado '{configurado}' ni otro 'ODBC Driver for SQL Server'.")
-    return odbc[-1]
+    if odbc:
+        return odbc[-1]
+    if LEGACY in instalados:
+        return LEGACY
+    raise ConnectionError(f"No está instalado '{configurado}' ni otro driver ODBC de SQL Server.")
 
 
 def conectar(cfg: dict):
@@ -31,10 +37,13 @@ def conectar(cfg: dict):
     usuario = keyring.get_password(cfg["servicio_credenciales"], CLAVE_USUARIO)
     contrasena = keyring.get_password(cfg["servicio_credenciales"], usuario) if usuario else None
     if not usuario or not contrasena:
-        raise RuntimeError(f"No hay credenciales guardadas en keyring '{cfg['servicio_credenciales']}'. "
-                           "Configúrelas con configurar_credenciales.py del proyecto Loan Tape.")
-    cadena = (f"DRIVER={{{_driver(cfg['driver'], pyodbc.drivers())}}};SERVER={cfg['server']};"
-              f"DATABASE={cfg['database']};Encrypt=yes;TrustServerCertificate=yes;UID={usuario};PWD={contrasena};")
+        raise RuntimeError(f"No hay credenciales SQL guardadas en keyring '{cfg['servicio_credenciales']}'. "
+                           "Configúrelas con: ModuloPYME_Carga.exe --configurar (o actualizar.py --configurar).")
+    driver = _driver(cfg["driver"], pyodbc.drivers())
+    # El driver de Windows no negocia el TLS moderno del servidor: con él la conexión va sin cifrar (red interna)
+    cifrado = "" if driver == LEGACY else "Encrypt=yes;TrustServerCertificate=yes;"
+    cadena = (f"DRIVER={{{driver}}};SERVER={cfg['server']};DATABASE={cfg['database']};{cifrado}"
+              f"UID={usuario};PWD={contrasena};")
     try:
         return pyodbc.connect(cadena, timeout=30)
     except pyodbc.Error as e:
