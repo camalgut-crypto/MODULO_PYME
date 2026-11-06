@@ -1,7 +1,9 @@
 """Carga diaria del Módulo PYME: ejecuta la consulta de cartera del equipo y la sube a Supabase.
 
 Uso:
-  actualizar.py --una-vez               carga (lo que corre la tarea programada de las 7:30)
+  actualizar.py --escuchar              queda encendido en una PC de la red: atiende el botón Actualizar de la app y la
+                                        carga diaria de las 7:30 (pueden ser varias PCs; Supabase reparte el trabajo)
+  actualizar.py --una-vez               carga ahora mismo (manual)
   actualizar.py --prueba                ejecuta las consultas y muestra un resumen, sin subir nada
   actualizar.py --local [CEDULA ...]    genera public/local/datos.json para revisar la app sin Supabase
 
@@ -155,6 +157,48 @@ def una_vez(cfg: dict) -> bool:
     return False
 
 
+def atender(cfg: dict, sb, trabajo: dict):
+    """Un trabajo tomado de la cola: botón Actualizar o un intento de la carga diaria."""
+    intentos = int(cfg.get("intentos", 3))
+    boton = trabajo["tipo"] == "boton"
+    i = trabajo["intento"] or 1
+    inicio = datetime.now().astimezone().isoformat()
+    try:
+        # El botón carga lo disponible aunque una fuente no sea del día (queda con aviso en la app)
+        estado, n, msg, fuentes = un_intento(cfg, sb, ultimo=boton or i >= intentos)
+        logging.info("%s (intento %s): %s — %s", "Botón" if boton else "Carga diaria", i, estado, msg)
+        sb.rpc("pyme_registrar_carga", {"p_inicio": inicio, "p_estado": estado, "p_intento": i, "p_filas": n,
+                                        "p_mensaje": msg, "p_fuentes": fuentes})
+        sb.rpc("pyme_terminar_trabajo", {"p_id": trabajo["id"], "p_estado": "ok", "p_mensaje": msg})
+    except Exception as e:
+        logging.exception("%s (intento %s) falló", "Botón" if boton else "Carga diaria", i)
+        msg = str(e)[:1000]
+        if not boton and i < intentos:
+            msg += f" — se reintenta en {cfg.get('espera_minutos', 10)} minutos"
+        sb.rpc("pyme_registrar_carga", {"p_inicio": inicio, "p_estado": "error", "p_intento": i, "p_filas": None,
+                                        "p_mensaje": msg, "p_fuentes": getattr(e, "fuentes", None)})
+        sb.rpc("pyme_terminar_trabajo", {"p_id": trabajo["id"], "p_estado": "error", "p_mensaje": msg})
+
+
+def escuchar(cfg: dict):
+    """Queda encendido: atiende el botón Actualizar y la carga diaria. Puede correr en varias PCs a la vez."""
+    import socket
+    from pyme.nube import Supabase
+    equipo = socket.gethostname()
+    logging.info("Escuchando en %s (carga diaria %s)", equipo, cfg.get("hora_diaria", "07:30"))
+    while True:
+        try:
+            sb = Supabase(cfg["supabase"])  # nuevo token en cada vuelta: no caduca aunque quede días encendido
+            trabajos = sb.rpc("pyme_tomar_trabajo", {
+                "p_equipo": equipo, "p_hora_diaria": cfg.get("hora_diaria", "07:30"),
+                "p_intentos": int(cfg.get("intentos", 3)), "p_espera_minutos": int(cfg.get("espera_minutos", 10))})
+            for t in trabajos or []:
+                atender(cfg, sb, t)
+        except Exception:
+            logging.exception("Vuelta con error; se reintenta")
+        reloj.sleep(20)
+
+
 def prueba(cfg: dict, cedulas: list[str]):
     if not cedulas:
         from pyme.nube import Supabase
@@ -190,6 +234,7 @@ def main():
     ap = argparse.ArgumentParser()
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--una-vez", action="store_true")
+    g.add_argument("--escuchar", action="store_true")
     g.add_argument("--prueba", nargs="*", metavar="CEDULA")
     g.add_argument("--local", nargs="+", metavar="CEDULA")
     a = ap.parse_args()
@@ -201,6 +246,8 @@ def main():
         local(cfg, a.local)
     elif a.prueba is not None:
         prueba(cfg, a.prueba)
+    elif a.escuchar:
+        escuchar(cfg)
     else:
         sys.exit(0 if una_vez(cfg) else 1)
 

@@ -1,24 +1,24 @@
-﻿# MÃ³dulo PYME
+﻿# Módulo PYME
 
-Seguimiento diario de la cartera del equipo PYME (Instacredit Nicaragua): cada crÃ©dito colocado por los promotores del
-equipo, con su mora, lo pagado desde el desembolso (interÃ©s, mora, otros cargos y capital), el % amortizado y los
-telÃ©fonos y direcciones del cliente.
+Seguimiento diario de la cartera del equipo PYME (Instacredit Nicaragua): cada crédito colocado por los promotores del
+equipo, con su mora, lo pagado desde el desembolso (interés, mora, otros cargos y capital), el % amortizado y los
+teléfonos y direcciones del cliente.
 
 - App: https://camalgut-crypto.github.io/MODULO_PYME/
 - Datos: Supabase de Tiempos DAC (`lzgteejsjxrbadsqlpnd`), tablas `pyme_*`. Cada carga reemplaza la cartera completa.
 
 ## Perfiles
 
-| Perfil | QuÃ© ve |
+| Perfil | Qué ve |
 |---|---|
-| **Promotor** | Solo los crÃ©ditos que Ã©l colocÃ³, sin saldo ni saldo pagarÃ©. En celular, en tarjetas con telÃ©fonos para llamar. |
-| **Jefe del equipo** | Toda la cartera (con saldo pagarÃ© y saldo), resumen por promotor, Excel y **Personal**: agrega promotores desde la lista de colocaciÃ³n, los activa/desactiva y restablece su contraseÃ±a. |
-| **Gerente paÃ­s** | Toda la cartera, resumen por promotor y Excel. |
+| **Promotor** | Solo los créditos que él colocó, sin saldo ni saldo pagaré. En celular, en tarjetas con teléfonos para llamar. |
+| **Jefe del equipo** | Toda la cartera (con saldo pagaré y saldo), resumen por promotor, Excel y **Personal**: agrega promotores desde la lista de colocación, los activa/desactiva y restablece su contraseña. |
+| **Gerente país** | Toda la cartera, resumen por promotor y Excel. |
 | **Administrador** | Todo, y crea usuarios de jefatura (gerente, jefe, administrador). |
 
-La seguridad estÃ¡ en Supabase (RLS): un promotor nunca recibe crÃ©ditos de otro ni los saldos. Se ingresa con el nombre
-completo; la contraseÃ±a temporal (12345678) se cambia en el primer ingreso. Quien ya usa Tiempos DAC o Auditores entra
-con su misma contraseÃ±a.
+La seguridad está en Supabase (RLS): un promotor nunca recibe créditos de otro ni los saldos. Se ingresa con el nombre
+completo; la contraseña temporal (12345678) se cambia en el primer ingreso. Quien ya usa Tiempos DAC o Auditores entra
+con su misma contraseña.
 
 ## Datos y reglas
 
@@ -27,44 +27,48 @@ app va con guion bajo (`JAR_50131`).
 
 | Campo | Fuente |
 |---|---|
-| Llave, cÃ©dula, nombre, fecha de desembolso, NIT | Loan tape, Ãºltimo corte (`LOAN_TAPE.dbo.loantape_his_ni`). Solo los crÃ©ditos que trae el loan. |
-| Promotor | ColocaciÃ³n (`V_BIT_REGIONAL_COLOCACION_new`), por comprobante + consecutivo, filtrado por **cÃ©dula del promotor** |
-| CÃ©dula vacÃ­a en el loan | Se toma la de colocaciÃ³n |
-| Empresa Genesis, cuotas pagadas, dÃ­as de mora | CENDOC, Ãºltimo corte de Nicaragua |
-| Cuotas en mora, monto cuota en mora, Dias Mora MC, saldo pagarÃ©, saldo | MCCOLLECT, su propio Ãºltimo corte |
-| % amortizado | 1 âˆ’ saldo / saldo pagarÃ© |
-| Pagado (total, interÃ©s, mora, otros cargos, capital) | CHIRICO, pagos de clientes desde el desembolso. Cada pago se repite en cada `f_reporte`: se deja una sola versiÃ³n (comprobante, recibo, crÃ©dito, fecha y monto; la del corte mÃ¡s reciente). Sin pagos queda vacÃ­o. |
-| TelÃ©fonos y direcciones | `Dim_Cliente` (CARTERA_REGIONAL), por NIT |
+| Llave, cédula, nombre, fecha de desembolso, NIT | Loan tape, último corte (`LOAN_TAPE.dbo.loantape_his_ni`). Solo los créditos que trae el loan. |
+| Promotor | Colocación (`V_BIT_REGIONAL_COLOCACION_new`), por comprobante + consecutivo, filtrado por **cédula del promotor** |
+| Cédula vacía en el loan | Se toma la de colocación |
+| Empresa Genesis, cuotas pagadas, días de mora | CENDOC, último corte de Nicaragua |
+| Cuotas en mora, monto cuota en mora, Dias Mora MC, saldo pagaré, saldo | MCCOLLECT, su propio último corte |
+| % amortizado | 1 − saldo / saldo pagaré |
+| Pagado (total, interés, mora, otros cargos, capital) | CHIRICO, pagos de clientes desde el desembolso. Cada pago se repite en cada `f_reporte`: se deja una sola versión (comprobante, recibo, crédito, fecha y monto; la del corte más reciente). Sin pagos queda vacío. |
+| Teléfonos y direcciones | `Dim_Cliente` (CARTERA_REGIONAL), por NIT |
 
-El equipo son los promotores **activos** de la pestaÃ±a Personal: no hay cÃ©dulas fijas en la consulta. La consulta arma
+El equipo son los promotores **activos** de la pestaña Personal: no hay cédulas fijas en la consulta. La consulta arma
 primero la cartera del equipo y filtra cada fuente contra ella (~11 s con 5 promotores; antes 2:36).
 
-## Carga diaria (7:30 a. m.)
+## Actualización: carga diaria 7:30 y botón Actualizar
 
-Tarea programada **"Modulo PYME - 7.30am"** â†’ `Ejecutar carga.bat` â†’ `worker/actualizar.py --una-vez`.
+La base de datos (Bijagua / Tortuguero) solo se alcanza desde la red interna, así que la carga la hace un proceso en
+una PC de la red: `Ejecutar carga.bat` → `worker/actualizar.py --escuchar` (tarea programada
+**"Modulo PYME - Proceso de carga"**, al iniciar sesión). Cada 20 s le pregunta a Supabase si hay trabajo:
 
-- Si falla la conexiÃ³n, la consulta no trae crÃ©ditos o CENDOC/MCCOLLECT/CHIRICO no son de hoy o ayer: reintenta
-  3 veces cada 10 minutos (`worker/config.toml`). Cada intento queda en `worker/logs/actualizar.log` y en `pyme_cargas`.
-- Con 0 crÃ©ditos nunca se reemplaza la cartera. Si tras los 3 intentos las fuentes siguen sin ser del dÃ­a, carga lo
-  disponible y la app lo avisa.
-- La app muestra siempre la fecha y hora de generaciÃ³n y la fecha de cada fuente, y avisa si los datos no son de hoy o
-  si la Ãºltima carga fallÃ³.
+- **Botón Actualizar** de la app (cualquier perfil): se atiende al momento (~20 s). Varios clics seguidos van juntos.
+- **Carga diaria**: desde las 7:30 (hora de Managua) si hoy no hay una carga buena. Si falla la conexión, la consulta
+  no trae créditos o CENDOC/MCCOLLECT/CHIRICO no son de hoy o ayer, reintenta 3 veces cada 10 minutos
+  (`worker/config.toml`). Si la PC se enciende después de las 7:30, carga al encenderse.
+- **Puede correr en varias PCs a la vez**: `pyme_tomar_trabajo` reparte con un candado, así que solo una carga a la vez.
+  Basta con que una esté encendida. La app muestra a jefatura qué PC de carga está conectada, y si no hay ninguna,
+  el botón lo avisa.
+- Cada intento queda en `worker/logs/actualizar.log` y en `pyme_cargas`. Con 0 créditos nunca se reemplaza la cartera.
+  La app muestra siempre la fecha y hora de generación y la de cada fuente, y avisa si los datos no son de hoy o si la
+  última carga falló.
 
-**La base de datos (Bijagua / Tortuguero) solo se alcanza desde la red interna.** La app y sus datos estÃ¡n en la nube,
-pero la carga debe correr en un equipo de la red encendido a las 7:30. Para no depender de una PC personal: copiar
-esta carpeta a un servidor de la red, `py -m venv .venv` y `.venv\Scripts\pip install pandas pyodbc keyring requests`,
-guardar las dos credenciales (abajo) con el usuario que correrÃ¡ la tarea y crear ahÃ­ la tarea programada.
+**Agregar otra PC de carga** (o un servidor, lo ideal): copiar esta carpeta, `py -m venv .venv`,
+`.venv\Scripts\pip install pandas pyodbc keyring requests`, guardar las dos credenciales con el usuario de esa PC y
+crear la misma tarea programada. Credenciales (Administrador de credenciales de Windows): SQL en keyring
+`modulo_garantias_sql` (`configurar_credenciales.py` de Loan Tape); Supabase con el usuario `sistema` de Tiempos DAC
+(keyring `tiempos_dac_supabase`).
 
-Credenciales (Administrador de credenciales de Windows): SQL en keyring `modulo_garantias_sql` (el de Loan Tape);
-Supabase con el usuario `sistema` de Tiempos DAC (keyring `tiempos_dac_supabase`).
-
-`worker/actualizar.py --prueba` ejecuta las consultas y muestra un resumen sin subir nada.
-`worker/actualizar.py --local CEDULA ...` genera `public/local/datos.json`; la app se revisa con
+Otros modos: `--una-vez` carga ahora mismo; `--prueba` ejecuta las consultas y muestra un resumen sin subir nada;
+`--local CEDULA ...` genera `public/local/datos.json` para revisar la app con
 `.venv\Scripts\python -m http.server 3000 --directory public` y `http://localhost:3000/?local&rol=promotor|jefe|gerente`.
 
 ## Puesta en marcha (una vez)
 
-1. Supabase de Tiempos DAC â€º SQL Editor: ejecutar `supabase/schema.sql`.
-2. Ejecutar tambiÃ©n `data/instalar_usuarios.sql` (promotores iniciales; no se sube a Git).
-3. `Ejecutar carga.bat` para la primera carga.
-4. Crear desde la app (Personal) al Gerente paÃ­s y al Jefe del equipo.
+1. Supabase de Tiempos DAC › SQL Editor: ejecutar `supabase/schema.sql` y `supabase/migracion_2026_11_06_boton.sql`.
+2. Ejecutar también `data/instalar_usuarios.sql` (promotores iniciales; no se sube a Git).
+3. Iniciar el proceso de carga (`Ejecutar carga.bat` o la tarea programada).
+4. Crear desde la app (Personal) al Gerente país y al Jefe del equipo.

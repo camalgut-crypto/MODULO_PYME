@@ -179,6 +179,7 @@ async function cargar() {
       S.cartera = cartera.map(r => ({ ...r, ...(sal.get(r.llave) || {}) }));
       S.ultima = conf[0]?.valor || null; S.carga = carga[0] || null;
       S.perfiles = perfiles; S.catalogo = catalogo;
+      S.equipos = veTodo() ? await equiposConectados() : [];
     }
   } catch (err) {
     aviso(`No se pudieron leer los datos: ${err.message}`, true);
@@ -196,7 +197,8 @@ function pintarFrescura() {
   const ayer = new Date(Date.now() - 864e5);
   const minimo = `${ayer.getFullYear()}-${String(ayer.getMonth() + 1).padStart(2, '0')}-${String(ayer.getDate()).padStart(2, '0')}`;
   $('frescura').innerHTML = `<span>Datos generados el <b>${fechaHora(u.generado)}</b></span>` +
-    FUENTES.map(([k, n, mensual]) => f[k] ? `<span class="f ${mensual ? 'mensual' : f[k] < minimo ? 'vieja' : ''}" title="${mensual ? 'Corte mensual del loan tape' : 'Fecha de los datos de origen'}">${n} ${fecha(f[k])}${mensual ? ' (corte mensual)' : ''}</span>` : '').join('');
+    FUENTES.map(([k, n, mensual]) => f[k] ? `<span class="f ${mensual ? 'mensual' : f[k] < minimo ? 'vieja' : ''}" title="${mensual ? 'Corte mensual del loan tape' : 'Fecha de los datos de origen'}">${n} ${fecha(f[k])}${mensual ? ' (corte mensual)' : ''}</span>` : '').join('') +
+    (veTodo() && !LOCAL ? `<span class="f ${S.equipos?.length ? '' : 'vieja'}" style="margin-left:auto">${S.equipos?.length ? `PC de carga conectada: ${S.equipos.map(e => esc(e.equipo)).join(', ')}` : 'Ninguna PC de carga conectada'}</span>` : '');
   const msgs = [];
   let error = false;
   if (String(u.generado).slice(0, 10) !== hoyISO()) {
@@ -517,6 +519,40 @@ async function descargar() {
   finally { btn.disabled = false; }
 }
 
+// ---------- Botón Actualizar: lo atiende una PC de la red con el proceso de carga encendido ----------
+async function equiposConectados() {
+  const eq = ok(await sb.from('pyme_equipos').select('*').order('visto_en', { ascending: false }));
+  return eq.filter(e => Date.now() - new Date(e.visto_en) < 120000);  // preguntan cada 20 s
+}
+
+async function actualizar() {
+  if (LOCAL) return cargar();
+  const btn = $('btnActualizar');
+  btn.disabled = true; btn.textContent = 'Actualizando…';
+  try {
+    if (!(await equiposConectados()).length) {
+      aviso('Ninguna PC de carga está conectada a la red en este momento, así que no se puede actualizar. Se muestran los últimos datos cargados.', true);
+      return;
+    }
+    const id = ok(await sb.rpc('pyme_pedir_actualizacion'));
+    const t0 = Date.now();
+    for (;;) {
+      await new Promise(r => setTimeout(r, 4000));
+      const e = ok(await sb.from('pyme_actualizaciones').select('estado,mensaje,equipo').eq('id', id).single());
+      if (e.estado === 'ok') { await cargar(); break; }
+      if (e.estado === 'error') { aviso(`La actualización falló${veTodo() ? `: ${e.mensaje || ''}` : '; avisale a tu jefe de equipo.'}`, true); break; }
+      if (Date.now() - t0 > 180000) {
+        aviso('La actualización está tardando más de lo normal: sigue en proceso y los datos se verán al recargar la página.', true);
+        break;
+      }
+    }
+  } catch (err) {
+    aviso(`No se pudo pedir la actualización: ${err.message}`, true);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Actualizar';
+  }
+}
+
 // ---------- Vista ----------
 function cambiarTab(tab) {
   S.tab = tab;
@@ -558,6 +594,7 @@ $('thead').addEventListener('click', e => {
 for (const id of ['fPromotor', 'fSituacion']) $(id).addEventListener('change', pintarCartera);
 $('fBuscar').addEventListener('input', pintarCartera);
 $('btnDescargar').addEventListener('click', descargar);
+$('btnActualizar').addEventListener('click', actualizar);
 
 (async () => {
   try {

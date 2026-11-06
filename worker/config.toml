@@ -1,7 +1,8 @@
 # Configuración del proceso de carga del Módulo PYME (sin secretos).
 # Las credenciales SQL son las mismas de Loan Tape (Administrador de credenciales de Windows, "modulo_garantias_sql").
 
-intentos = 3            # si falla la conexión, no hay datos o los datos no son del día: se reintenta
+hora_diaria = "07:30"   # hora de Managua; la atiende cualquier PC con actualizar.py --escuchar encendido
+intentos = 3           # si falla la conexión, no hay datos o los datos no son del día: se reintenta
 espera_minutos = 10     # entre intentos (carga 7:30 → último intento ~7:50)
 dias_tolerancia = 1     # CENDOC, MCCOLLECT y CHIRICO deben ser de hoy o de ayer; si no, se reintenta y se avisa
 
