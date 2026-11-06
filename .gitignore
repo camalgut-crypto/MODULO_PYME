@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+data/
+worker/logs/
+public/local/
+scratchpad/
+images/
+tasks/
+*.xlsx
+*.xls
+*.csv
+.env

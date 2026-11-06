@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Módulo PYME</title>
+  <link rel="icon" href="img/isotipo.png">
+  <link rel="stylesheet" href="styles.css?v=2026110601">
+</head>
+<body>
+  <!-- ---------- Ingreso ---------- -->
+  <div id="login" class="login" hidden>
+    <div class="lado">
+      <img class="hilo" src="img/hilo_esquina_lima.png" alt="">
+      <img class="logo" src="img/logo_claro.png" alt="Instacredit">
+      <div>
+        <p class="kicker">Seguimiento de cartera · Nicaragua</p>
+        <h1>Módulo <span>PYME</span></h1>
+        <p class="lema">Cada crédito es un negocio que confió en nosotros. Acompañalo de cerca.</p>
+      </div>
+      <img class="mascota" src="img/prestamito_asesor.png" alt="">
+    </div>
+    <div class="forms">
+      <form id="flog">
+        <h2>¡HOLA!</h2>
+        <p class="muted small">Ingresá con tu nombre completo, tal como te lo entregaron. Si usás Tiempos DAC o Auditores, es el mismo usuario y la misma contraseña.</p>
+        <label for="lu">Usuario</label><input id="lu" autocomplete="username" required placeholder="Nombre Apellido Apellido">
+        <label for="lp">Contraseña</label><input id="lp" type="password" autocomplete="current-password" required>
+        <p id="lmsg" class="small error-txt"></p>
+        <button class="btn ancho">Entrar</button>
+      </form>
+      <form id="fclave" hidden>
+        <h2>Elegí tu contraseña</h2>
+        <p class="muted small">Estás usando la contraseña temporal. Elegí una propia de al menos 8 caracteres para continuar.</p>
+        <label for="cn1">Nueva contraseña</label><input id="cn1" type="password" autocomplete="new-password" required>
+        <label for="cn2">Repetí la nueva contraseña</label><input id="cn2" type="password" autocomplete="new-password" required>
+        <p id="cmsg" class="small error-txt"></p>
+        <button class="btn ancho">Guardar y entrar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ---------- App ---------- -->
+  <div id="app" hidden>
+    <header class="top">
+      <img src="img/logo_claro.png" alt="Instacredit">
+      <div class="tit">Módulo <span>PYME</span></div>
+      <div class="acciones">
+        <span class="yo"><span id="yoNombre"></span> <span class="chip" id="yoRol"></span></span>
+        <button id="btnClave" class="btn sec mini">Cambiar contraseña</button>
+        <button id="btnSalir" class="btn sec mini">Salir</button>
+      </div>
+    </header>
+    <nav class="tabs" id="tabs">
+      <button data-tab="cartera" class="on">Cartera <span class="cnt" id="cntCartera"></span></button>
+      <button data-tab="resumen" id="tabResumen" hidden>Por promotor</button>
+      <button data-tab="personal" id="tabPersonal" hidden>Personal</button>
+    </nav>
+    <div id="frescura" class="frescura"></div>
+    <main>
+      <div id="aviso" class="aviso" hidden></div>
+
+      <!-- Cartera -->
+      <div id="vistaCartera">
+        <section class="saludo" id="saludo" hidden></section>
+        <section class="kpis" id="kpis"></section>
+        <div class="filtros">
+          <label class="crece">Buscar <input id="fBuscar" type="search" placeholder="Llave, cliente, cédula, empresa o teléfono"></label>
+          <label id="lblPromotor">Promotor <select id="fPromotor"></select></label>
+          <label>Situación <select id="fSituacion">
+            <option value="">Todos</option>
+            <option value="dia">Al día</option>
+            <option value="mora">En mora</option>
+            <option value="m1">Mora 1 a 30 días</option>
+            <option value="m31">Mora 31 a 60 días</option>
+            <option value="m61">Mora más de 60 días</option>
+            <option value="sinpago">Sin pagos registrados</option>
+          </select></label>
+          <button id="btnDescargar" class="btn" type="button" hidden>Descargar Excel</button>
+        </div>
+        <div class="tabla-caja">
+          <table class="datos">
+            <thead id="thead"></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+          <div id="vacio" class="vacio" hidden>
+            <img src="img/prestamito_pensando.png" alt="">
+            <p>No hay créditos con estos filtros.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resumen por promotor (gerente, jefe, admin) -->
+      <div id="vistaResumen" hidden>
+        <p class="muted small">Clic en un promotor para ver su cartera.</p>
+        <div class="tabla-caja">
+          <table class="datos">
+            <thead id="rhead"></thead>
+            <tbody id="rbody"></tbody>
+            <tfoot id="rfoot"></tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- Administrador de personal (jefe, admin) -->
+      <div id="vistaPersonal" hidden>
+        <div class="paneles">
+          <div class="panel">
+            <h3>Agregar promotor al equipo</h3>
+            <form id="fpromotor" class="filtros">
+              <label class="crece">Buscá en la lista de promotores de Nicaragua
+                <input id="pBuscar" list="pLista" placeholder="Nombre o cédula" autocomplete="off" required>
+                <datalist id="pLista"></datalist>
+              </label>
+              <label class="crece">Nombre para ingresar <input id="pNombre" required placeholder="Nombre Apellido Apellido"></label>
+              <button class="btn">Agregar</button>
+            </form>
+            <p class="small muted" id="pInfo">La lista trae a quienes colocaron solicitudes en los últimos 12 meses. El promotor entra con el nombre que pongás aquí y la contraseña temporal <b>12345678</b>, y ve solo los créditos que él colocó.</p>
+          </div>
+          <div class="panel" id="panelUsuario" hidden>
+            <h3>Nuevo usuario de jefatura</h3>
+            <form id="fusuario" class="filtros">
+              <label class="crece">Nombre completo <input id="uNombre" required placeholder="Nombre Apellido Apellido"></label>
+              <label>Perfil <select id="uRol">
+                <option value="gerente">Gerente país</option>
+                <option value="jefe">Jefe del equipo</option>
+                <option value="admin">Administrador</option>
+              </select></label>
+              <button class="btn">Crear</button>
+            </form>
+            <p class="small muted">Si la persona ya usa Tiempos DAC o Auditores, solo se le da acceso y conserva su contraseña.</p>
+          </div>
+        </div>
+        <div class="tabla-caja">
+          <table class="datos personal">
+            <thead><tr><th>Nombre</th><th>Perfil</th><th>Cédula promotor</th><th>Créditos</th><th>Activo</th><th>Agregado por</th><th></th></tr></thead>
+            <tbody id="tpersonal"></tbody>
+          </table>
+        </div>
+        <p class="small muted">Un promotor desactivado sale del reporte desde la carga siguiente y ya no puede ingresar. Se puede volver a activar en cualquier momento.</p>
+      </div>
+    </main>
+    <footer class="pie">¡Apoyándote siempre! · Instacredit Nicaragua · Datos de uso interno: teléfonos y direcciones son datos personales de nuestros clientes.</footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.99.3/dist/umd/supabase.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+  <script src="config.js?v=2026110601"></script>
+  <script src="app.js?v=2026110601"></script>
+</body>
+</html>

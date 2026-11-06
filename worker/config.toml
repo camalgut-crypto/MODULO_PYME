@@ -1,0 +1,23 @@
+# Configuración del proceso de carga del Módulo PYME (sin secretos).
+# Las credenciales SQL son las mismas de Loan Tape (Administrador de credenciales de Windows, "modulo_garantias_sql").
+
+intentos = 3            # si falla la conexión, no hay datos o los datos no son del día: se reintenta
+espera_minutos = 10     # entre intentos (carga 7:30 → último intento ~7:50)
+dias_tolerancia = 1     # CENDOC, MCCOLLECT y CHIRICO deben ser de hoy o de ayer; si no, se reintenta y se avisa
+
+[servidor]
+server = 'SRV-BIJAGUA\RIESGO'   # comillas simples: la barra invertida se toma literal
+database = "LOAN_TAPE"
+driver = "ODBC Driver 18 for SQL Server"   # si no está instalado se usa el más nuevo disponible
+servicio_credenciales = "modulo_garantias_sql"
+
+[consultas]
+cartera = "worker/sql/cartera.sql"
+promotores = "worker/sql/promotores.sql"
+
+[supabase]
+# Mismo proyecto que Tiempos DAC; las tablas de este módulo llevan el prefijo pyme_
+url = "https://lzgteejsjxrbadsqlpnd.supabase.co"
+anon_key = "sb_publishable_3v2gGe5N9Oh1eW-9ywMb1g_3Buo8af8"
+usuario = "sistema"      # usuario de carga de Tiempos DAC (rol sistema); contraseña ya guardada en keyring
+servicio_credenciales = "tiempos_dac_supabase"
